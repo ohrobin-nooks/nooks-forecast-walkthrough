@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Forecast — watch the records change</title>
+    <style>
+      :root {
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          sans-serif;
+        color: #17263d;
+        background: #f3f5f9;
+        font-synthesis: none;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      main {
+        max-width: 1380px;
+        margin: auto;
+        padding: 32px 28px 50px;
+      }
+      h1 {
+        font-size: 30px;
+        letter-spacing: -1px;
+        margin: 8px 0;
+      }
+      h2 {
+        font-size: 19px;
+        margin: 0 0 12px;
+      }
+      p {
+        line-height: 1.55;
+        margin: 8px 0;
+      }
+      .eyebrow {
+        font-size: 12px;
+        font-weight: 750;
+        letter-spacing: 1px;
+        color: #5d6780;
+        text-transform: uppercase;
+      }
+      .muted {
+        color: #617086;
+        font-size: 13px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: center;
+      }
+      .badge {
+        font-size: 12px;
+        background: #e7edf7;
+        padding: 8px 12px;
+        border-radius: 20px;
+        white-space: nowrap;
+      }
+      nav {
+        flex-wrap: wrap;
+        display: flex;
+        gap: 8px;
+        margin: 24px 0 18px;
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+        border: 1px solid #ccd5e3;
+        background: white;
+        padding: 11px 17px;
+        border-radius: 9px;
+        font-size: 14px;
+        font-weight: 650;
+      }
+      button:hover {
+        filter: brightness(0.97);
+      }
+      button:focus-visible,
+      input:focus-visible {
+        outline: 3px solid #b7aaff;
+        outline-offset: 3px;
+      }
+      button[aria-selected="true"],
+      .primary {
+        background: #5a3ce0;
+        color: white;
+        border-color: #5a3ce0;
+      }
+      .primary {
+        width: 100%;
+        margin-top: 15px;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .top {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 20px;
+      }
+      .card {
+        min-width: 0;
+        background: white;
+        border: 1px solid #dce2ec;
+        border-radius: 15px;
+        padding: 22px;
+        box-shadow: 0 2px 5px #15274305;
+      }
+      .boardhead {
+        flex-wrap: wrap;
+        gap: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+      .board {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        text-align: left;
+        font-size: 11px;
+        font-weight: 650;
+        color: #617086;
+        padding: 10px 9px;
+        border-bottom: 1px solid #e5e9f0;
+        white-space: nowrap;
+      }
+      td {
+        padding: 13px 9px;
+        font-size: 14px;
+        border-bottom: 1px solid #edf0f5;
+        white-space: nowrap;
+      }
+      .big {
+        font-size: 23px;
+        font-weight: 700;
+        color: #593cd5;
+      }
+      .editor {
+        display: flex;
+        gap: 12px;
+        align-items: end;
+        margin-top: 20px;
+      }
+      .editor label {
+        font-size: 12px;
+        color: #526079;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      input {
+        font: inherit;
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #c5cede;
+        border-radius: 8px;
+        background: white;
+        color: #17263d;
+      }
+      input:disabled {
+        background: #f4f6fa;
+        color: #6a7587;
+      }
+      .progress {
+        display: flex;
+        gap: 7px;
+        margin-bottom: 18px;
+      }
+      .dot {
+        height: 5px;
+        background: #e6e9f1;
+        flex: 1;
+        border-radius: 10px;
+      }
+      .dot.done {
+        background: #7356e8;
+      }
+      .lesson-title {
+        font-size: 22px;
+        margin-bottom: 10px;
+      }
+      .changes {
+        padding: 0;
+        margin: 17px 0 0;
+        list-style: none;
+      }
+      .changes li {
+        padding: 8px 0;
+        border-bottom: 1px solid #eef0f5;
+        font-size: 14px;
+      }
+      .changes strong {
+        color: #442aaf;
+      }
+      .arrow {
+        text-align: center;
+        font-size: 13px;
+        color: #59677d;
+        letter-spacing: 0.2px;
+        margin: 20px 0;
+      }
+      .records {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 15px;
+      }
+      .records.deals {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .record {
+        padding: 18px;
+        min-width: 0;
+      }
+      .record h2 {
+        font:
+          600 13px ui-monospace,
+          SFMono-Regular,
+          monospace;
+        overflow-wrap: anywhere;
+        margin-bottom: 8px;
+      }
+      .record p {
+        font-size: 12px;
+        color: #65738a;
+        min-height: 37px;
+      }
+      .state {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 5px;
+        background: #f0f2f7;
+        color: #667287;
+        font-size: 11px;
+        margin-bottom: 10px;
+      }
+      .state.changed {
+        background: #eee9ff;
+        color: #5a3ce0;
+      }
+      .scroll {
+        overflow: auto;
+      }
+      .record table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      .record td {
+        font-size: 12px;
+      }
+      .record th {
+        font-size: 10px;
+      }
+      .fresh td {
+        background: #f0ecff;
+      }
+      .empty {
+        font-size: 13px;
+        color: #738197;
+        padding: 24px 9px;
+      }
+      .legend {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        margin-top: 16px;
+      }
+      .takeaway {
+        margin-top: 20px;
+        background: #e8f3ef;
+        border: 1px solid #c9e3d8;
+        padding: 15px 20px;
+        border-radius: 12px;
+        color: #245643;
+        font-size: 15px;
+      }
+      .hidden {
+        display: none !important;
+      }
+      #error {
+        color: #ae2938;
+        font-size: 13px;
+        min-height: 20px;
+      }
+      code {
+        font-size: 0.9em;
+      }
+      footer {
+        margin-top: 23px;
+        font-size: 12px;
+        color: #6d788b;
+      }
+      @media (max-width: 1000px) {
+        .records {
+          grid-template-columns: 1fr;
+        }
+        .record p {
+          min-height: 0;
+        }
+      }
+      @media (max-width: 700px) {
+        main {
+          padding: 20px 14px;
+        }
+        .top,
+        .records.deals {
+          grid-template-columns: 1fr;
+        }
+        header {
+          align-items: start;
+        }
+        .badge {
+          white-space: normal;
+          max-width: 140px;
+        }
+        h1 {
+          font-size: 26px;
+        }
+        .legend {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <div class="eyebrow">Nooks Forecast · interactive walkthrough</div>
+          <h1>Make a change. Watch what gets stored.</h1>
+          <p class="muted">
+            Sample data, simplified interface. No live app, CRM or database
+            connection.
+          </p>
+        </div>
+        <span class="badge">All changes stay in this browser tab</span>
+      </header>
+      <nav role="tablist" aria-label="Walkthroughs">
+        <button role="tab" id="forecast-tab" aria-selected="true">
+          1. Forecast submissions</button
+        ><button role="tab" id="deals-tab" aria-selected="false">
+          2. Deal snapshots
+        </button>
+        <button role="tab" id="team-tab" aria-selected="false">
+          3. Team rollups
+        </button>
+      </nav>
+      <div class="top">
+        <section class="card" aria-label="Illustrative Forecast interface">
+          <div class="boardhead">
+            <h2 id="board-title"></h2>
+            <span class="badge" id="clock"></span>
+          </div>
+          <div id="board"></div>
+          <div class="editor">
+            <label id="amount-label"
+              >Forecast amount ($)<input
+                id="amount"
+                type="number"
+                min="0"
+                max="999999999"
+                step="1"
+                value="140000"
+            /></label>
+          </div>
+          <div id="error" role="alert"></div>
+          <button class="primary" id="action"></button>
+        </section>
+        <section class="card" aria-live="polite">
+          <div class="progress" id="progress"></div>
+          <div class="eyebrow" id="step-label"></div>
+          <h2 class="lesson-title" id="lesson-title"></h2>
+          <p id="explanation"></p>
+          <ul class="changes" id="changes"></ul>
+        </section>
+      </div>
+      <div class="arrow" id="flow"></div>
+      <section
+        id="records"
+        class="records"
+        aria-label="Underlying records"
+      ></section>
+      <div class="legend">
+        <span class="muted"
+          >Purple rows changed in the last action. Table headers use proposed
+          field names.</span
+        ><button id="reset">Reset this walkthrough</button>
+      </div>
+      <div class="takeaway" id="takeaway"></div>
+      <footer>
+        Illustrates selected records from the proposed Nooks design. IDs are
+        shortened; unchanged fields are omitted. Capture buttons simulate
+        scheduled jobs, not rep-facing controls. No data is saved after
+        reloading.
+      </footer>
+    </main>
+    <script src="team-rollup.js"></script>
+    <script>
+      "use strict";
+      const $ = (id) => document.getElementById(id);
+      const money = (n) =>
+        n == null
+          ? "—"
+          : new Intl.NumberFormat("en-US", {
+              style: "currency",
+              currency: "USD",
+              maximumFractionDigits: 0,
+            }).format(n);
+      let mode = location.hash === "#team" ? "team" : "forecast";
+      function emptyForecast() {
+        return {
+          step: 0,
+          history: [],
+          captures: [],
+          highlight: "",
+          pending: 140000,
+        };
+      }
+      function emptyDeals() {
+        return {
+          step: 0,
+          amount: 100000,
+          captures: [],
+          highlight: "",
+          pending: 120000,
+        };
+      }
+      let forecast = emptyForecast(),
+        deals = emptyDeals();
+      const forecastLessons = [
+        [
+          "Start with an empty forecast",
+          "Alice has a $300,000 target and $240,000 in open pipeline. She has not submitted her forecast. Enter an amount and submit it.",
+          [
+            "No submission event yet.",
+            "No current forecast yet.",
+            "No weekly capture yet.",
+          ],
+        ],
+        [
+          "One submission, one history event",
+          "Alice has made her forecast call. The board reads the latest history event through the current-submission view.",
+          [
+            "History: one new event.",
+            "Current view: the same event, not another stored copy.",
+            "Weekly captures: still empty.",
+          ],
+        ],
+        [
+          "Friday freezes a comparison point",
+          "The scheduled job captures Alice’s current forecast. It does not create another submission.",
+          [
+            "History: unchanged.",
+            "Current view: unchanged.",
+            "Weekly captures: one new frozen record.",
+          ],
+        ],
+        [
+          "A new forecast does not rewrite Friday",
+          "Alice has changed her forecast on Monday. The board shows the new amount. Friday’s capture still contains the old amount.",
+          [
+            "History: a second event; the first remains.",
+            "Current view: now selects the second event.",
+            "Weekly captures: Friday’s record is unchanged.",
+          ],
+        ],
+        [
+          "Two Fridays can now be compared",
+          "The next scheduled job captures the current amount. The difference from the previous capture is stored as delta.",
+          [
+            "History: still two events.",
+            "Current view: still selects the second event.",
+            "Weekly captures: two records, one for each Friday.",
+          ],
+        ],
+      ];
+      const dealLessons = [
+        [
+          "A live deal is not its history",
+          "Acme is a $100,000 deal in Negotiation. Nooks already has a synchronized CRM record. First, capture that deal as it looks today.",
+          ["Existing CRM copy: $100,000.", "Deal snapshots: empty."],
+        ],
+        [
+          "Keep today’s deal state",
+          "The daily capture stores the deal’s properties at this time. Next, simulate an accepted CRM amount change and a successful sync.",
+          [
+            "Existing CRM copy: unchanged.",
+            "Deal snapshots: one frozen record.",
+          ],
+        ],
+        [
+          "The CRM changes; yesterday stays intact",
+          "The CRM accepted the new amount and Nooks refreshed its existing deal record. The earlier snapshot still contains $100,000.",
+          [
+            "Existing CRM copy: updated.",
+            "Deal snapshots: unchanged.",
+            "Alice’s submitted forecast would not change automatically.",
+          ],
+        ],
+        [
+          "Now the deal movement is explainable",
+          "A second daily capture preserves the updated deal amount. Compare the two snapshots to see how this deal changed.",
+          [
+            "Existing CRM copy: unchanged.",
+            "Deal snapshots: two records for the same deal at different times.",
+          ],
+        ],
+      ];
+      function table(headers, rows) {
+        return (
+          '<div class="scroll"><table><thead><tr>' +
+          headers.map((h) => "<th>" + h + "</th>").join("") +
+          "</tr></thead><tbody>" +
+          (rows.length
+            ? rows
+                .map(
+                  (r) =>
+                    '<tr class="' +
+                    (r.fresh ? "fresh" : "") +
+                    '">' +
+                    r.cells.map((c) => "<td>" + c + "</td>").join("") +
+                    "</tr>",
+                )
+                .join("")
+            : '<tr><td class="empty" colspan="' +
+              headers.length +
+              '">No records yet</td></tr>') +
+          "</tbody></table></div>"
+        );
+      }
+      function record(title, desc, status, changed, headers, rows) {
+        return (
+          '<article class="card record"><h2>' +
+          title +
+          "</h2><p>" +
+          desc +
+          '</p><span class="state ' +
+          (changed ? "changed" : "") +
+          '">' +
+          status +
+          "</span>" +
+          table(headers, rows) +
+          "</article>"
+        );
+      }
+      function render() {
+        $("team-tab").setAttribute("aria-selected", String(mode === "team"));
+        if (mode === "team") {
+          $("forecast-tab").setAttribute("aria-selected", "false");
+          $("deals-tab").setAttribute("aria-selected", "false");
+          TeamRollupWalkthrough.render({ $, money, table, record });
+          return;
+        }
+        const s = mode === "forecast" ? forecast : deals;
+        const lessons = mode === "forecast" ? forecastLessons : dealLessons;
+        const [title, desc, changes] = lessons[s.step];
+        $("forecast-tab").setAttribute(
+          "aria-selected",
+          String(mode === "forecast"),
+        );
+        $("deals-tab").setAttribute("aria-selected", String(mode === "deals"));
+        $("progress").innerHTML = lessons
+          .map(
+            (_, i) =>
+              '<span class="dot ' + (i <= s.step ? "done" : "") + '"></span>',
+          )
+          .join("");
+        $("step-label").textContent =
+          "Step " + (s.step + 1) + " of " + lessons.length;
+        $("lesson-title").textContent = title;
+        $("explanation").textContent = desc;
+        $("changes").innerHTML = changes
+          .map((t) => "<li>" + t + "</li>")
+          .join("");
+        $("error").textContent = "";
+        if (mode === "forecast") {
+          const current = s.history.at(-1),
+            last = s.captures.at(-1);
+          $("board-title").textContent = "New Business · Q4 2026";
+          $("clock").textContent = [
+            "Thursday, Oct 22",
+            "Thursday, Oct 22",
+            "Friday, Oct 23",
+            "Monday, Oct 26",
+            "Friday, Oct 30",
+          ][s.step];
+          $("board").innerHTML =
+            table(
+              ["Rep", "Pipeline", "Target", "Commit"],
+              [
+                {
+                  cells: [
+                    "Alice",
+                    money(240000),
+                    money(300000),
+                    '<span class="big">' + money(current?.value) + "</span>",
+                  ],
+                },
+              ],
+            ) +
+            '<p class="muted">Latest weekly capture: ' +
+            money(last?.value) +
+            (last ? " · " + last.date : "") +
+            "</p>";
+          const submit = s.step === 0 || s.step === 2;
+          $("amount-label").firstChild.textContent = "Forecast amount ($)";
+          $("amount").disabled = !submit;
+          $("amount").value = s.pending;
+          $("action").textContent = [
+            "Submit forecast",
+            "Run Friday capture (scheduled job)",
+            "Submit revised forecast",
+            "Run next Friday capture (scheduled job)",
+            "Continue to deal snapshots →",
+          ][s.step];
+          $("flow").textContent =
+            s.highlight === "capture"
+              ? "Scheduled job → read current forecast → freeze a weekly snapshot"
+              : "Alice submits → append history → current view selects latest → board refreshes";
+          $("records").className = "records";
+          $("records").innerHTML =
+            record(
+              "ForecastSubmissionHistories",
+              "Each submission is a new event. Earlier events remain.",
+              s.history.length + " event" + (s.history.length === 1 ? "" : "s"),
+              s.highlight === "submit",
+              ["id", "value", "occurredAt"],
+              s.history.map((h, i) => ({
+                fresh: s.highlight === "submit" && i === s.history.length - 1,
+                cells: [h.id, money(h.value), h.date],
+              })),
+            ) +
+            record(
+              "ForecastSubmissions · VIEW",
+              "Shows the latest event for Alice’s personal Commit in Q4. No second stored copy.",
+              current ? "1 current row" : "No current row",
+              s.highlight === "submit",
+              ["id", "value", "participantId"],
+              current
+                ? [
+                    {
+                      fresh: s.highlight === "submit",
+                      cells: [current.id, money(current.value), "alice"],
+                    },
+                  ]
+                : [],
+            ) +
+            record(
+              "ForecastSubmissionSnapshots",
+              "One frozen value for this cell at each weekly capture.",
+              s.captures.length +
+                " capture" +
+                (s.captures.length === 1 ? "" : "s"),
+              s.highlight === "capture",
+              ["slot", "value", "delta", "submissionId"],
+              s.captures.map((c, i) => ({
+                fresh: s.highlight === "capture" && i === s.captures.length - 1,
+                cells: [
+                  c.slot,
+                  money(c.value),
+                  c.delta == null
+                    ? "—"
+                    : (c.delta > 0 ? "+" : "") + money(c.delta),
+                  c.submissionId,
+                ],
+              })),
+            );
+          $("takeaway").textContent =
+            s.step < 3
+              ? "History answers “What did Alice submit?” A snapshot answers “What was her forecast at Friday’s checkpoint?”"
+              : "The current forecast can change while a previous weekly capture stays frozen. Neither value is wrong: they refer to different times.";
+        } else {
+          $("board-title").textContent = "Deal detail · Acme";
+          $("clock").textContent =
+            s.step < 2 ? "Thursday, Oct 22" : "Friday, Oct 23";
+          $("board").innerHTML =
+            table(
+              ["Deal", "Stage", "Amount"],
+              [
+                {
+                  cells: [
+                    "Acme",
+                    "Negotiation",
+                    '<span class="big">' + money(s.amount) + "</span>",
+                  ],
+                },
+              ],
+            ) +
+            '<p class="muted">Calculated pipeline: ' +
+            money(140000 + s.amount) +
+            " (Acme + $140,000 in other deals). Submitted forecasts stay as entered.</p>";
+          $("amount-label").firstChild.textContent = "New CRM deal amount ($)";
+          $("amount").disabled = s.step !== 1;
+          $("amount").value = s.pending;
+          $("action").textContent = [
+            "Run today’s deal capture",
+            "Simulate accepted CRM edit + sync",
+            "Run next day’s deal capture",
+            "Return to forecast submissions →",
+          ][s.step];
+          $("flow").textContent =
+            s.highlight === "crm"
+              ? "CRM accepts edit → existing Nooks CRM record refreshes → previous snapshot stays frozen"
+              : "Scheduled job → read existing deal data → preserve a deal snapshot";
+          $("records").className = "records deals";
+          $("records").innerHTML =
+            record(
+              "HubSpotDeals · EXISTING",
+              "The synchronized CRM record supplies current deal facts.",
+              "Current deal record",
+              s.highlight === "crm",
+              ["id", "fields.amount", "dealStage"],
+              [
+                {
+                  fresh: s.highlight === "crm",
+                  cells: ["acme", money(s.amount), "Negotiation"],
+                },
+              ],
+            ) +
+            record(
+              "ForecastDealSnapshots",
+              "Selected properties from the same deal at different capture times.",
+              s.captures.length +
+                " capture" +
+                (s.captures.length === 1 ? "" : "s"),
+              s.highlight === "capture",
+              ["dealId", "capturedAt", "properties.amount"],
+              s.captures.map((c, i) => ({
+                fresh: s.highlight === "capture" && i === s.captures.length - 1,
+                cells: ["acme", c.date, money(c.value)],
+              })),
+            );
+          $("takeaway").textContent =
+            "A deal snapshot remembers CRM facts. A submission snapshot remembers a forecast value. They answer different historical questions.";
+        }
+      }
+      function readAmount() {
+        $("error").textContent = "";
+        const raw = $("amount").value;
+        const n = Number(raw);
+        if (!raw || !Number.isInteger(n) || n < 0 || n > 999999999) {
+          $("error").textContent =
+            "Enter a whole-dollar amount from 0 to 999,999,999 for this walkthrough.";
+          return null;
+        }
+        return n;
+      }
+      $("action").addEventListener("click", () => {
+        if (mode === "team") {
+          TeamRollupWalkthrough.act({ readAmount });
+          if (!$("error").textContent) render();
+          return;
+        }
+        if (mode === "forecast") {
+          const s = forecast;
+          if (s.step === 4) {
+            mode = "deals";
+            render();
+            return;
+          }
+          if (s.step === 0 || s.step === 2) {
+            const n = readAmount();
+            if (n === null) return;
+            s.pending = n;
+            s.history.push({
+              id: "sub-" + (s.history.length + 1),
+              value: n,
+              date: s.step === 0 ? "Oct 22, 10:00" : "Oct 26, 10:00",
+            });
+            s.highlight = "submit";
+          } else {
+            const current = s.history.at(-1);
+            const prior = s.captures.at(-1);
+            s.captures.push({
+              slot: s.step === 1 ? "2026-W43" : "2026-W44",
+              date: s.step === 1 ? "Oct 23" : "Oct 30",
+              value: current.value,
+              delta: prior ? current.value - prior.value : null,
+              submissionId: current.id,
+            });
+            s.highlight = "capture";
+            if (s.step === 1) s.pending = current.value + 10000;
+          }
+          s.step++;
+        } else {
+          const s = deals;
+          if (s.step === 3) {
+            mode = "forecast";
+            render();
+            return;
+          }
+          if (s.step === 1) {
+            const n = readAmount();
+            if (n === null) return;
+            s.amount = n;
+            s.pending = n;
+            s.highlight = "crm";
+          } else {
+            s.captures.push({
+              date: s.step === 0 ? "Oct 22, 18:00" : "Oct 23, 18:00",
+              value: s.amount,
+            });
+            s.highlight = "capture";
+          }
+          s.step++;
+        }
+        render();
+      });
+      $("forecast-tab").onclick = () => {
+        mode = "forecast";
+        render();
+      };
+      $("deals-tab").onclick = () => {
+        mode = "deals";
+        render();
+      };
+      $("team-tab").onclick = () => {
+        mode = "team";
+        render();
+      };
+      $("reset").onclick = () => {
+        if (mode === "team") TeamRollupWalkthrough.reset();
+        else if (mode === "forecast") forecast = emptyForecast();
+        else deals = emptyDeals();
+        render();
+      };
+      render();
+    </script>
+  </body>
+</html>
