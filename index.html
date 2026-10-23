@@ -289,6 +289,42 @@
       .hidden {
         display: none !important;
       }
+      .config-detail {
+        margin-bottom: 20px;
+      }
+      .filter-flow {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin: 16px 0;
+      }
+      .filter-node {
+        padding: 12px;
+        background: #f3f0ff;
+        border: 1px solid #ddd4fc;
+        border-radius: 9px;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .filter-node strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+      .config-detail td {
+        white-space: normal;
+        min-width: 90px;
+      }
+      .config-detail td:last-child {
+        min-width: 170px;
+      }
+      .config-record td {
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      .inspect {
+        padding: 6px 9px;
+        font-size: 12px;
+      }
       #error {
         color: #ae2938;
         font-size: 13px;
@@ -311,6 +347,9 @@
         }
       }
       @media (max-width: 700px) {
+        .filter-flow {
+          grid-template-columns: 1fr 1fr;
+        }
         main {
           padding: 20px 14px;
         }
@@ -356,6 +395,9 @@
         <button role="tab" id="team-tab" aria-selected="false">
           3. Team rollups
         </button>
+        <button role="tab" id="configuration-tab" aria-selected="false">
+          4. Metrics, boards &amp; columns
+        </button>
       </nav>
       <div class="top">
         <section class="card" aria-label="Illustrative Forecast interface">
@@ -388,6 +430,11 @@
       </div>
       <div class="arrow" id="flow"></div>
       <section
+        id="configuration-detail"
+        class="card config-detail hidden"
+        aria-label="Calculation trace"
+      ></section>
+      <section
         id="records"
         class="records"
         aria-label="Underlying records"
@@ -407,6 +454,7 @@
       </footer>
     </main>
     <script src="team-rollup.js"></script>
+    <script src="configuration.js"></script>
     <script>
       "use strict";
       const $ = (id) => document.getElementById(id);
@@ -418,7 +466,11 @@
               currency: "USD",
               maximumFractionDigits: 0,
             }).format(n);
-      let mode = location.hash === "#team" ? "team" : "forecast";
+      let mode = ["team", "configuration", "deals"].includes(
+        location.hash.slice(1),
+      )
+        ? location.hash.slice(1)
+        : "forecast";
       function emptyForecast() {
         return {
           step: 0,
@@ -556,7 +608,24 @@
         );
       }
       function render() {
+        $("configuration-tab").setAttribute(
+          "aria-selected",
+          String(mode === "configuration"),
+        );
+        document
+          .querySelector(".editor")
+          .classList.toggle("hidden", mode === "configuration");
+        $("configuration-detail").classList.toggle(
+          "hidden",
+          mode !== "configuration",
+        );
         $("team-tab").setAttribute("aria-selected", String(mode === "team"));
+        if (mode === "configuration") {
+          $("forecast-tab").setAttribute("aria-selected", "false");
+          $("deals-tab").setAttribute("aria-selected", "false");
+          ConfigurationWalkthrough.render({ $, money, table, record });
+          return;
+        }
         if (mode === "team") {
           $("forecast-tab").setAttribute("aria-selected", "false");
           $("deals-tab").setAttribute("aria-selected", "false");
@@ -758,6 +827,11 @@
         return n;
       }
       $("action").addEventListener("click", () => {
+        if (mode === "configuration") {
+          ConfigurationWalkthrough.act();
+          render();
+          return;
+        }
         if (mode === "team") {
           TeamRollupWalkthrough.act({ readAmount });
           if (!$("error").textContent) render();
@@ -830,8 +904,13 @@
         mode = "team";
         render();
       };
+      $("configuration-tab").onclick = () => {
+        mode = "configuration";
+        render();
+      };
       $("reset").onclick = () => {
-        if (mode === "team") TeamRollupWalkthrough.reset();
+        if (mode === "configuration") ConfigurationWalkthrough.reset();
+        else if (mode === "team") TeamRollupWalkthrough.reset();
         else if (mode === "forecast") forecast = emptyForecast();
         else deals = emptyDeals();
         render();
