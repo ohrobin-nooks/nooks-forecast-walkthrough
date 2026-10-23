@@ -49,6 +49,20 @@
       open: true,
     },
   ];
+  const ids = {
+    "metric-open": "10000000-0000-4000-8000-000000000001",
+    company: "20000000-0000-4000-8000-000000000001",
+    enterprise: "20000000-0000-4000-8000-000000000002",
+    "company-main": "30000000-0000-4000-8000-000000000001",
+    "ent-main": "30000000-0000-4000-8000-000000000002",
+    "ent-check": "30000000-0000-4000-8000-000000000003",
+  };
+  const filter = (field, kind, value) => ({
+    field,
+    kind,
+    operator: "is",
+    value,
+  });
   const seed = () => ({ step: 0, selected: "ent-main", before: null });
   let state = seed();
   const columns = () => [
@@ -229,129 +243,101 @@
         })),
       )}
       <p><strong>SUM:</strong> ${included.map((deal) => `${deal.name} ${money(deal[amountProperty()])}`).join(" + ")} = <strong>${money(total(selected))}</strong></p>`;
-    const id = (value, kind) =>
-      `<code class="record-id ${kind}">${value}</code>`;
-    const boardFilterFor = (boardId) =>
-      boardId === "company"
-        ? "[] · no additional restriction"
-        : `segment = Enterprise${state.step >= 2 ? " AND type = New business" : ""}`;
-    const columnFilterFor = (columnId) =>
-      state.step >= 3 && columnId === "ent-main"
-        ? "owner = Alice"
-        : "[] · no additional restriction";
-    $("records").className = "records configuration";
-    // Keep all six example records visible. The column is the link between a
-    // board and a reusable metric; config.metricId is not a Postgres FK.
+    const storedBoardFilters =
+      selected.boardId === "company"
+        ? []
+        : [
+            filter("segment", "choice", "Enterprise"),
+            ...(state.step >= 2
+              ? [filter("deal_type", "choice", "New business")]
+              : []),
+          ];
+    const storedColumnFilters =
+      state.step >= 3 && selected.id === "ent-main"
+        ? [filter("hubspot_owner_id", "owner", "owner-alice")]
+        : [];
+    const escapeHtml = (value) =>
+      value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    const fieldRows = (entries, freshFields) =>
+      entries.map(([field, value]) => ({
+        fresh: freshFields.includes(field),
+        cells: [
+          `<code>${field}</code>`,
+          `<code data-field="${field}">${escapeHtml(JSON.stringify(value, null, 2))}</code>`,
+        ],
+      }));
+    const boardChanged = state.step === 2 && selected.boardId === "enterprise";
+    const columnChanged =
+      (state.step === 1 || state.step === 3) && selected.id === "ent-main";
+    $("records").className = "records";
     $("records").innerHTML =
-      `
-      <article class="card relationship-map">
-        <h2>Start with the column: it points to both records</h2>
-        <p>A board is a saved page. A column is one configured column on that page. A metric is a reusable calculation that a metric column points to.</p>
-        <div class="scroll"><div class="relationship-path">
-          <div class="relationship-node"><strong>ForecastBoards</strong><br>id = ${id(selected.boardId, "board-id")}<br>${selected.board}</div>
-          <div class="relationship-link"><span>boardId</span><b>←</b><small>Database foreign key*</small></div>
-          <div class="relationship-node"><strong>ForecastColumns</strong><br>id = ${id(selected.id, "column-id")}<br>${selected.label}</div>
-          <div class="relationship-link logical"><span>config.metricId</span><b>⇢</b><small>Reference inside JSON</small></div>
-          <div class="relationship-node"><strong>ForecastMetrics</strong><br>id = ${id("metric-open", "metric-id")}<br>SUM(${amountProperty()})</div>
-        </div></div>
-        <p><strong>Read the matching IDs:</strong> column ${id(selected.id, "column-id")} has <code>boardId = ${selected.boardId}</code>, so it belongs to the ${selected.board} board. Its <code>config.metricId = metric-open</code> selects the shared calculation.</p>
-        <p class="muted">*The database foreign key pairs (workspaceId, boardId) with ForecastBoards (workspaceId, id). config.metricId is stored inside JSON and resolved by the Nooks backend within the workspace; Postgres does not enforce it as a foreign key.</p>
-        <p class="muted">Below are all six records, not just the selected ones. Every row has workspaceId = demo-workspace. These readable IDs stand in for UUIDs. Blue outlines trace the selected column’s links; purple shading marks the last edit.</p>
-      </article>` +
       record(
-        "ForecastBoards · 2 rows",
-        "Each board exists once. A board does not store a metricId; its columns reference their metrics.",
-        state.step === 2 ? "Enterprise filters updated" : "Board configuration",
-        state.step === 2,
-        ["id", "name", "config.filters"],
-        [
-          { id: "company", name: "Company" },
-          { id: "enterprise", name: "Enterprise" },
-        ].map((board) => ({
-          fresh: state.step === 2 && board.id === "enterprise",
-          cells: [
-            id(board.id, "board-id"),
-            board.name,
-            boardFilterFor(board.id),
-          ],
-        })),
-      ) +
-      record(
-        "ForecastColumns · 3 rows",
-        "Two different columns belong to Enterprise because they repeat the same boardId. All three columns use the same metric because they repeat config.metricId.",
-        state.step === 1 || state.step === 3
-          ? "ent-main updated"
-          : "One row per placement",
-        state.step === 1 || state.step === 3,
-        [
-          "id",
-          "boardId → Boards.id",
-          "label",
-          "position",
-          "config.metricId → Metrics.id",
-          "config.filters",
-          "Trace links",
-        ],
-        placements.map((column) => ({
-          fresh:
-            (state.step === 1 || state.step === 3) && column.id === "ent-main",
-          cells: [
-            id(column.id, "column-id"),
-            id(column.boardId, "board-id"),
-            column.label,
-            column.position,
-            id("metric-open", "metric-id"),
-            columnFilterFor(column.id),
-            `<button class="inspect" data-record-inspect="${column.id}" aria-pressed="${column.id === state.selected}" aria-label="Trace ${column.id}">${column.id === state.selected ? "Selected" : "Trace"}</button>`,
-          ],
-        })),
-      ) +
-      record(
-        "ForecastMetrics · 1 row",
-        "The calculation is stored once. There is no boardId here: this metric can be referenced from multiple boards through their columns.",
-        state.step === 4
-          ? "Shared calculation updated"
-          : "Referenced by all 3 columns",
+        "ForecastMetrics",
+        "One shared definition. Its id exactly matches config.metricId in the column card.",
+        state.step === 4 ? "Shared metric updated" : "1 shared metric",
         state.step === 4,
-        [
-          "id",
-          "name",
-          "definition.aggregation",
-          "definition.amountProperty",
-          "definition.filters",
-        ],
-        [
-          {
-            fresh: state.step === 4,
-            cells: [
-              id("metric-open", "metric-id"),
-              "Open Pipeline",
-              "SUM",
-              amountProperty(),
-              "is_closed is false",
-            ],
-          },
-        ],
+        ["Field", "Stored value"],
+        fieldRows(
+          [
+            ["id", ids["metric-open"]],
+            ["workspaceId", "demo-workspace"],
+            ["name", "Open Pipeline"],
+            ["kind", "basic"],
+            ["definition.aggregation", "SUM"],
+            ["definition.amountProperty", amountProperty()],
+            ["definition.ownerProperty", "hubspot_owner_id"],
+            ["definition.dateProperty", "closedate"],
+            ["definition.filters", [filter("is_closed", "bool", false)]],
+          ],
+          state.step === 4 ? ["definition.amountProperty"] : [],
+        ),
+      ) +
+      record(
+        "ForecastBoards",
+        "Selected board. Its id exactly matches boardId in the column card. Both records share workspaceId.",
+        boardChanged ? "Board filters updated" : "2 boards total",
+        boardChanged,
+        ["Field", "Stored value"],
+        fieldRows(
+          [
+            ["id", ids[selected.boardId]],
+            ["workspaceId", "demo-workspace"],
+            ["name", selected.board],
+            ["config.filters", storedBoardFilters],
+            ["config.periodTypes", ["QUARTER"]],
+          ],
+          boardChanged ? ["config.filters"] : [],
+        ),
+      ) +
+      record(
+        "ForecastColumns",
+        "Selected column. boardId is a database FK together with workspaceId. config.metricId is a JSON reference resolved by the backend, not a database FK.",
+        columnChanged ? "Selected column updated" : "3 columns total",
+        columnChanged,
+        ["Field", "Stored value"],
+        fieldRows(
+          [
+            ["id", ids[selected.id]],
+            ["workspaceId", "demo-workspace"],
+            ["boardId", ids[selected.boardId]],
+            ["key", selected.id],
+            ["label", selected.label],
+            ["position", selected.position],
+            ["kind", "metric"],
+            ["config.metricId", ids["metric-open"]],
+            ["config.filters", storedColumnFilters],
+          ],
+          columnChanged ? [state.step === 1 ? "label" : "config.filters"] : [],
+        ),
       );
-    const recordCards = $("records").querySelectorAll(".record");
-    const boardRow = selected.boardId === "company" ? 0 : 1;
-    recordCards[0]
-      .querySelectorAll("tbody tr")
-      [boardRow].classList.add("linked-row");
-    recordCards[1]
-      .querySelectorAll("tbody tr")
-      [placements.indexOf(selected)].classList.add("linked-row");
-    recordCards[2].querySelector("tbody tr").classList.add("linked-row");
     $("records")
-      .querySelectorAll("[data-record-inspect]")
-      .forEach((button) => {
-        button.onclick = () => {
-          state.selected = button.dataset.recordInspect;
-          render(helpers);
-        };
-      });
+      .querySelectorAll(".record")
+      .forEach((element) => element.classList.add("config-record"));
     $("takeaway").textContent =
-      "Why three tables? The metric owns a reusable calculation. The board owns shared context. The column owns one placement and its extra restrictions. This avoids copying a calculation into every column, but a shared metric edit affects every reference. The six rows above store configuration; the dollar totals are computed read results. Field paths are exact; filter values above are readable summaries of stored configuration. Revision and audit updates are omitted.";
+      "Why three tables? The metric owns a reusable calculation. The board owns shared context. The column owns one placement and its extra restrictions. This avoids copying a calculation into every column, but a shared metric edit affects every reference. The cards show valid example UUIDs and actual JSON value shapes. Alice maps to CRM owner-alice and Bob to owner-bob; these are synthetic identities. Short IDs in the walkthrough are labels for the UUIDs in the cards. Unchanged fields, revision and audit updates are omitted.";
   }
   window.ConfigurationWalkthrough = {
     render,

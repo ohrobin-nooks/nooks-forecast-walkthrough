@@ -317,62 +317,12 @@
       .config-detail td:last-child {
         min-width: 170px;
       }
-      .records.configuration {
-        grid-template-columns: 1fr;
-        margin-bottom: 20px;
+      .config-record td {
+        white-space: normal;
+        overflow-wrap: anywhere;
       }
-      .record-id {
-        display: inline-block;
-        padding: 3px 6px;
-        border-radius: 4px;
-        font-weight: 650;
-      }
-      .board-id {
-        background: #e0f2ed;
-        color: #175d49;
-      }
-      .column-id {
-        background: #e6edfc;
-        color: #254d91;
-      }
-      .metric-id {
-        background: #f0e8ff;
-        color: #63349b;
-      }
-      .linked-row {
-        outline: 2px solid #6289c4;
-        outline-offset: -2px;
-      }
-      .relationship-path {
-        display: grid;
-        grid-template-columns: 1fr 145px 1fr 145px 1fr;
-        align-items: center;
-        min-width: 840px;
-        gap: 10px;
-        margin: 18px 2px;
-      }
-      .relationship-node {
-        border: 1px solid #b9cce9;
-        padding: 18px 12px;
-        border-radius: 10px;
-        line-height: 1.8;
-        background: #f8faff;
-      }
-      .relationship-link {
-        text-align: center;
-        font-size: 12px;
-      }
-      .relationship-link b {
-        display: block;
-        font-size: 36px;
-        color: #4877ae;
-        line-height: 1.2;
-      }
-      .relationship-link small {
-        display: block;
-      }
-      .relationship-link.logical b {
-        color: #8053a7;
+      .config-record td code {
+        white-space: pre-wrap;
       }
       .inspect {
         padding: 6px 9px;
@@ -672,9 +622,6 @@
           "hidden",
           mode !== "configuration",
         );
-        if (mode === "configuration")
-          $("configuration-detail").before($("records"));
-        else $("configuration-detail").after($("records"));
         $("team-tab").setAttribute("aria-selected", String(mode === "team"));
         if (mode === "configuration") {
           $("forecast-tab").setAttribute("aria-selected", "false");
